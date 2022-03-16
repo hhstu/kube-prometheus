@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: prometheus-proxy-server
+  name: prometheus-proxy-server
+  namespace: monitoring
+spec:
+  type: NodePort
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      nodePort: 30882
+  selector:
+    app.kubernetes.io/name: prometheus-proxy-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-proxy-server
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus-proxy-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: prometheus-proxy-server
+    spec:
+      serviceAccountName: prometheus-k8s
+      containers:
+        - env: []
+          image: basefly/prometheus-proxy:v0.0.1
+          name: prometheus-proxy-server
+          command:
+            - /proxy
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+---
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: prometheus-proxy-client
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus-proxy-client
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus-proxy-client
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: prometheus-proxy-client
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+        openyurt.io/is-edge-worker: "true"
+      tolerations:
+        - operator: "Exists"
+      containers:
+        - name: prometheus-proxy-client
+          image: basefly/prometheus-proxy:v0.0.1
+          env:
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spect.nodeName
+          args:
+            - --fqdn=$(KUBE_NODE_NAME)
+            - --proxy-url=http://apiserver.cluster.local:30882/
+          command:
+            - /client
+          resources:
+            limits:
+              memory: 50Mi
+            requests:
+              memory: 10Mi

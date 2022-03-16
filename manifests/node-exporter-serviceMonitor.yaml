@@ -3,10 +3,10 @@ kind: ServiceMonitor
 metadata:
   labels:
     app.kubernetes.io/component: exporter
-    app.kubernetes.io/name: node-exporter
+    app.kubernetes.io/name: node-exporter-cloud
     app.kubernetes.io/part-of: kube-prometheus
     app.kubernetes.io/version: 1.1.2
-  name: node-exporter
+  name: node-exporter-cloud
   namespace: monitoring
 spec:
   endpoints:
@@ -20,12 +20,58 @@ spec:
       sourceLabels:
       - __meta_kubernetes_pod_node_name
       targetLabel: instance
-    scheme: https
+    - action: replace
+      replacement: node-exporter
+      targetLabel: job
+    scheme: http
     tlsConfig:
       insecureSkipVerify: true
   jobLabel: app.kubernetes.io/name
   selector:
     matchLabels:
       app.kubernetes.io/component: exporter
-      app.kubernetes.io/name: node-exporter
+      app.kubernetes.io/name: node-exporter-cloud
+      app.kubernetes.io/part-of: kube-prometheus
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app.kubernetes.io/component: exporter
+    app.kubernetes.io/name: node-exporter-edge
+    app.kubernetes.io/part-of: kube-prometheus
+    app.kubernetes.io/version: 1.1.2
+  name: node-exporter-edge
+  namespace: monitoring
+spec:
+  endpoints:
+    - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+      interval: 15s
+      proxyUrl: http://prometheus-proxy-server:8080/
+      port: https
+      relabelings:
+        - action: replace
+          regex: (.*);.*:(.*)
+          replacement: $1:$2
+          sourceLabels:
+            - __meta_kubernetes_pod_node_name
+            - __address__
+          targetLabel: __address__
+        - action: replace
+          regex: (.*)
+          replacement: $1
+          sourceLabels:
+            - __meta_kubernetes_pod_node_name
+          targetLabel: instance
+        - action: replace
+          replacement: node-exporter
+          targetLabel: job
+      scheme: http
+      tlsConfig:
+        insecureSkipVerify: true
+  jobLabel: app.kubernetes.io/name
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: exporter
+      app.kubernetes.io/name: node-exporter-edge
       app.kubernetes.io/part-of: kube-prometheus

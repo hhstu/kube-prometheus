@@ -666,11 +666,11 @@ spec:
         severity: warning
     - alert: KubeletDown
       annotations:
-        description: Kubelet has disappeared from Prometheus target discovery.
+        description: 无法抓取 kubelet 的指标，kubelet 疑似下线
         runbook_url: https://github.com/prometheus-operator/kube-prometheus/wiki/kubeletdown
-        summary: Target disappeared from Prometheus target discovery.
+        summary: 无法抓取 kubelet 的指标，kubelet 疑似下线
       expr: |
-        absent(up{job="kubelet", metrics_path="/metrics"} == 1)
+        absent(up{job="monitoring/kubelet/cloud|monitoring/kubelet/edge", metrics_path="/metrics"} == 1)
       for: 15m
       labels:
         severity: critical

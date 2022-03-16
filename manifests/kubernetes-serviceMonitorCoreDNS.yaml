@@ -2,7 +2,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   labels:
-    app.kubernetes.io/name: coredns
+    kubernetes.io/name: coredns
   name: coredns
   namespace: monitoring
 spec:
@@ -16,4 +16,4 @@ spec:
     - kube-system
   selector:
     matchLabels:
-      app.kubernetes.io/name: kube-dns
+      k8s-app: kube-dns
