@@ -17,7 +17,7 @@ all: generate fmt test
 
 .PHONY: clean
 clean:
-	# Remove all files and directories ignored by git.
+	# Remove all config and directories ignored by git.
 	git clean -Xfd .
 
 .PHONY: generate

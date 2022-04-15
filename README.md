@@ -253,7 +253,7 @@ And here's the [build.sh](build.sh) script (which uses `vendor/` to render all m
 ```sh
 #!/usr/bin/env bash
 
-# This script uses arg $1 (name of *.jsonnet file to use) to generate the manifests/*.yaml files.
+# This script uses arg $1 (name of *.jsonnet file to use) to generate the manifests/*.yaml config.
 
 set -e
 set -x
@@ -270,7 +270,7 @@ mkdir -p manifests/setup
 # Calling gojsontoyaml is optional, but we would like to generate yaml, not json
 jsonnet -J vendor -m manifests "${1-example.jsonnet}" | xargs -I{} sh -c 'cat {} | gojsontoyaml > {}.yaml' -- {}
 
-# Make sure to remove json files
+# Make sure to remove json config
 find manifests -type f ! -name '*.yaml' -delete
 rm -f kustomization
 

@@ -1,0 +1,779 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    name: loki
+  name: loki
+---
+# Source: loki-stack/charts/loki/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: loki
+  name: loki
+  namespace: loki
+---
+# Source: loki-stack/charts/loki/templates/secret.yaml
+#apiVersion: v1
+#kind: Secret
+#metadata:
+#  name: loki
+#  namespace: loki
+#  labels:
+#    app: loki
+#data:
+#  loki.yaml: YXV0aF9lbmFibGVkOiBmYWxzZQpjaHVua19zdG9yZV9jb25maWc6CiAgbWF4X2xvb2tfYmFja19wZXJpb2Q6IDBzCmluZ2VzdGVyOgogIGNodW5rX2Jsb2NrX3NpemU6IDI2MjE0NAogIGNodW5rX2lkbGVfcGVyaW9kOiAzbQogIGNodW5rX3JldGFpbl9wZXJpb2Q6IDFtCiAgbGlmZWN5Y2xlcjoKICAgIHJpbmc6CiAgICAgIGt2c3RvcmU6CiAgICAgICAgc3RvcmU6IGlubWVtb3J5CiAgICAgIHJlcGxpY2F0aW9uX2ZhY3RvcjogMQogIG1heF90cmFuc2Zlcl9yZXRyaWVzOiAwCmxpbWl0c19jb25maWc6CiAgZW5mb3JjZV9tZXRyaWNfbmFtZTogZmFsc2UKICByZWplY3Rfb2xkX3NhbXBsZXM6IHRydWUKICByZWplY3Rfb2xkX3NhbXBsZXNfbWF4X2FnZTogMTY4aApzY2hlbWFfY29uZmlnOgogIGNvbmZpZ3M6CiAgLSBmcm9tOiAiMjAxOC0wNC0xNSIKICAgIGluZGV4OgogICAgICBwZXJpb2Q6IDE2OGgKICAgICAgcHJlZml4OiBpbmRleF8KICAgIG9iamVjdF9zdG9yZTogZmlsZXN5c3RlbQogICAgc2NoZW1hOiB2OQogICAgc3RvcmU6IGJvbHRkYgpzZXJ2ZXI6CiAgaHR0cF9saXN0ZW5fcG9ydDogMzEwMApzdG9yYWdlX2NvbmZpZzoKICBib2x0ZGI6CiAgICBkaXJlY3Rvcnk6IC9kYXRhL2xva2kvaW5kZXgKICBmaWxlc3lzdGVtOgogICAgZGlyZWN0b3J5OiAvZGF0YS9sb2tpL2NodW5rcwp0YWJsZV9tYW5hZ2VyOgogIHJldGVudGlvbl9kZWxldGVzX2VuYWJsZWQ6IGZhbHNlCiAgcmV0ZW50aW9uX3BlcmlvZDogMHM=
+
+# secret 不利于编辑，先改成 configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki
+  namespace: loki
+  labels:
+    app: loki
+data:
+  role.yaml: |
+    groups:
+      - name: ecu
+        rules:
+          - alert: euc
+            expr: |
+              count_over_time({namespace="sn1645119400043",workload_name="ai-algorithm-dsapp" }|= "8."[1m]) > 0
+            for: 1s
+            labels:
+                severity: page
+            annotations:
+                summary: ecu dsapp 断流
+  loki.yaml: |
+    auth_enabled: false
+    chunk_store_config:
+      max_look_back_period: 0s
+    ingester:
+      chunk_block_size: 262144
+      chunk_idle_period: 3m
+      chunk_retain_period: 1m
+      lifecycler:
+        ring:
+          kvstore:
+            store: inmemory
+          replication_factor: 1
+      max_transfer_retries: 0
+    limits_config:
+      enforce_metric_name: false
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h
+    schema_config:
+      configs:
+      - from: 2020-10-01
+        store: boltdb-shipper
+        object_store: filesystem
+        schema: v11
+        index:
+          prefix: index_
+          period: 24h
+    server:
+      http_listen_port: 3100
+    storage_config:
+      boltdb_shipper:
+        active_index_directory: /data/loki/boltdb-shipper-active
+        cache_location: /data/loki/boltdb-shipper-cache
+        cache_ttl: 48h         # Can be increased for faster performance over longer query periods, uses more disk space
+        shared_store: filesystem
+      filesystem:
+        directory: /data/loki/chunks
+    compactor:
+      working_directory: /data/loki/boltdb-shipper-compactor
+      shared_store: filesystem
+    table_manager:
+      retention_deletes_enabled: true
+      retention_period: 240h
+    ruler:
+      storage:
+        type: local
+        local:
+          directory: /tmp/rules
+      rule_path: /tmp/scratch
+      ring:
+        kvstore:
+          store: inmemory
+      alertmanager_url: http://alertmanager-main.monitoring:9093
+---
+
+
+# Source: loki-stack/charts/loki/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: loki
+  namespace: loki
+  labels:
+    app: loki
+rules:
+  - apiGroups:      ['extensions']
+    resources:      ['podsecuritypolicies']
+    verbs:          ['use']
+    resourceNames:  [loki]
+---
+
+
+# Source: loki-stack/charts/loki/templates/rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: loki
+  namespace: loki
+  labels:
+    app: loki
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: loki
+subjects:
+  - kind: ServiceAccount
+    name: loki
+---
+# Source: loki-stack/charts/loki/templates/service-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki-headless
+  namespace: loki
+  labels:
+    app: loki
+spec:
+  clusterIP: None
+  ports:
+    - port: 3100
+      protocol: TCP
+      name: http-metrics
+      targetPort: http-metrics
+  selector:
+    app: loki
+---
+# Source: loki-stack/charts/loki/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki
+  namespace: loki
+  labels:
+    app: loki
+    serviceType: nodePort
+spec:
+  type: NodePort
+  ports:
+    - port: 3100
+      protocol: TCP
+      name: http-metrics
+      targetPort: http-metrics
+      nodePort: 31000
+  selector:
+    app: loki
+---
+# Source: loki-stack/charts/loki/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: loki
+  namespace: loki
+  labels:
+    app: loki
+    serviceType: headless
+spec:
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loki
+  serviceName: loki-headless
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: loki
+      annotations:
+        prometheus.io/port: http-metrics
+        prometheus.io/scrape: "true"
+    spec:
+      serviceAccountName: loki
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              preference:
+                matchExpressions:
+                  - key: node-role.kubernetes.io/master
+                    operator: DoesNotExist
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+        - effect: PreferNoSchedule
+          key: node-role.kubernetes.io/master
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+        - key: CriticalAddonsOnly
+          operator: Exists
+      securityContext:
+        runAsUser: 0
+      containers:
+        - name: loki
+          image: grafana/loki:2.4.1
+          imagePullPolicy: IfNotPresent
+          args:
+            - "-config.file=/etc/loki/loki.yaml"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/loki
+            - name: config
+              subPath: role.yaml
+              mountPath: /tmp/rules/role.yaml
+            - name: storage
+              mountPath: "/data"
+            - name: tz
+              mountPath: /etc/localtime
+          ports:
+            - name: http-metrics
+              containerPort: 3100
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: http-metrics
+            initialDelaySeconds: 45
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http-metrics
+            initialDelaySeconds: 45
+          securityContext:
+            readOnlyRootFilesystem: false
+      terminationGracePeriodSeconds: 4800
+      volumes:
+        - name: tz
+          hostPath:
+            path: /etc/localtime
+        - name: config
+          configMap:
+            name: loki
+  volumeClaimTemplates:
+    - metadata:
+        name: storage
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: "20Gi"
+---
+# Source: loki-stack/charts/promtail/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: promtail
+  name: loki-promtail
+  namespace: loki
+---
+# Source: loki-stack/charts/promtail/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-promtail
+  namespace: loki
+  labels:
+    app: promtail
+data:
+  promtail.yaml: |
+    clients:
+      - url: http://loki:3100/loki/api/v1/push
+    client:
+      external_labels: {cluster: ctfo-monitor }
+      backoff_config:
+        max_period: 5s
+        max_retries: 20
+        min_period: 100ms
+      batchsize: 102400
+      batchwait: 1s
+      timeout: 10s
+    positions:
+      filename: /run/promtail/positions.yaml
+    server:
+      http_listen_port: 3101
+    target_config:
+      sync_period: 10s
+    scrape_configs:
+    - job_name: journal
+      journal:
+          json: false
+          max_age: 12h
+          labels:
+            job: systemd-journal
+      pipeline_stages:
+              - match:
+                  selector: '{hostname!="000000000000"}'
+                  stages:
+                    - regex:
+                        expression: "(?P<level>INFO|info|ERROR|error|WARN|warn|DEBUG|debug)"
+                    - labels:
+                         level:
+      relabel_configs:
+          - source_labels: ['__journal__systemd_unit']
+            target_label: 'unit'
+          - source_labels: ['__journal__hostname']
+            target_label: 'hostname'
+    - job_name: kubernetes-pods-name
+      kubernetes_sd_configs:
+          - role: pod
+      pipeline_stages:
+        - docker: {}
+        - match:
+            selector: '{stream=~"stdout|stderr"}'
+            stages:
+              - regex:
+                  expression: "(?P<level>INFO|info|ERROR|error|WARN|warn|DEBUG|debug)"
+              - labels:
+                   level:
+      relabel_configs:
+      - source_labels:
+        - __meta_kubernetes_pod_label_name
+        target_label: workload_name
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_controller_kind
+        target_label: workload_type
+      - source_labels:
+        - __meta_kubernetes_pod_node_name
+        target_label: __host__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        replacement: $1
+        separator: /
+        source_labels:
+        - __meta_kubernetes_namespace
+        - workload_name
+        target_label: job
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: namespace
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_container_name
+        target_label: container
+      - replacement: /var/log/pods/*$1/*.log
+        separator: /
+        source_labels:
+        - __meta_kubernetes_pod_uid
+        - __meta_kubernetes_pod_container_name
+        target_label: __path__
+    - job_name: kubernetes-pods-app
+      kubernetes_sd_configs:
+        - role: pod
+      pipeline_stages:
+        - docker: {}
+        - match:
+            selector: '{stream=~"stdout|stderr"}'
+            stages:
+              - regex:
+                  expression: "(?P<level>INFO|info|ERROR|error|WARN|warn|DEBUG|debug)"
+              - labels:
+                   level:
+      relabel_configs:
+      - action: drop
+        regex: .+
+        source_labels:
+        - __meta_kubernetes_pod_label_name
+      - source_labels:
+        - __meta_kubernetes_pod_label_app
+        target_label: workload_name
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_controller_kind
+        target_label: workload_type
+      - source_labels:
+        - __meta_kubernetes_pod_node_name
+        target_label: __host__
+      - action: drop
+        regex: ''
+        source_labels:
+        - workload_name
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        replacement: $1
+        separator: /
+        source_labels:
+        - __meta_kubernetes_namespace
+        - workload_name
+        target_label: job
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: namespace
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_container_name
+        target_label: container
+      - replacement: /var/log/pods/*$1/*.log
+        separator: /
+        source_labels:
+        - __meta_kubernetes_pod_uid
+        - __meta_kubernetes_pod_container_name
+        target_label: __path__
+    - job_name: kubernetes-pods-direct-controllers
+      kubernetes_sd_configs:
+        - role: pod
+      pipeline_stages:
+        - docker: {}
+        - match:
+            selector: '{stream=~"stdout|stderr"}'
+            stages:
+              - regex:
+                  expression: "(?P<level>INFO|info|ERROR|error|WARN|warn|DEBUG|debug)"
+              - labels:
+                   level:
+      relabel_configs:
+      - action: drop
+        regex: .+
+        separator: ''
+        source_labels:
+        - __meta_kubernetes_pod_label_name
+        - __meta_kubernetes_pod_label_app
+      - action: drop
+        regex: '[0-9a-z-.]+-[0-9a-f]{8,10}'
+        source_labels:
+        - __meta_kubernetes_pod_controller_name
+      - source_labels:
+        - __meta_kubernetes_pod_controller_name
+        target_label: workload_name
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_controller_kind
+        target_label: workload_type
+      - source_labels:
+        - __meta_kubernetes_pod_node_name
+        target_label: __host__
+      - action: drop
+        regex: ''
+        source_labels:
+        - workload_name
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        replacement: $1
+        separator: /
+        source_labels:
+        - __meta_kubernetes_namespace
+        - workload_name
+        target_label: job
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: namespace
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_container_name
+        target_label: container
+      - replacement: /var/log/pods/*$1/*.log
+        separator: /
+        source_labels:
+        - __meta_kubernetes_pod_uid
+        - __meta_kubernetes_pod_container_name
+        target_label: __path__
+    - job_name: kubernetes-pods-indirect-controller
+      kubernetes_sd_configs:
+          - role: pod
+      pipeline_stages:
+        - docker: {}
+        - match:
+            selector: '{stream=~"stdout|stderr"}'
+            stages:
+              - regex:
+                  expression: "(?P<level>INFO|info|ERROR|error|WARN|warn|DEBUG|debug)"
+              - labels:
+                   level:
+      relabel_configs:
+      - action: drop
+        regex: .+
+        separator: ''
+        source_labels:
+        - __meta_kubernetes_pod_label_name
+        - __meta_kubernetes_pod_label_app
+      - action: keep
+        regex: '[0-9a-z-.]+-[0-9a-f]{8,10}'
+        source_labels:
+        - __meta_kubernetes_pod_controller_name
+      - action: replace
+        regex: '([0-9a-z-.]+)-[0-9a-f]{8,10}'
+        source_labels:
+        - __meta_kubernetes_pod_controller_name
+        target_label: workload_name
+      - action: replace
+        replacement: "Deployment"
+        target_label: workload_type
+      - source_labels:
+        - __meta_kubernetes_pod_node_name
+        target_label: __host__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        replacement: $1
+        separator: /
+        source_labels:
+        - __meta_kubernetes_namespace
+        - workload_name
+        target_label: job
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: namespace
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_container_name
+        target_label: container
+      - replacement: /var/log/pods/*$1/*.log
+        separator: /
+        source_labels:
+        - __meta_kubernetes_pod_uid
+        - __meta_kubernetes_pod_container_name
+        target_label: __path__
+    - job_name: kubernetes-pods-static
+      kubernetes_sd_configs:
+        - role: pod
+      pipeline_stages:
+        - docker: {}
+        - match:
+            selector: '{stream=~"stdout|stderr"}'
+            stages:
+              - regex:
+                  expression: "(?P<level>INFO|info|ERROR|error|WARN|warn|DEBUG|debug)"
+              - labels:
+                   level:
+      relabel_configs:
+      - action: drop
+        regex: ''
+        source_labels:
+        - __meta_kubernetes_pod_annotation_kubernetes_io_config_mirror
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_label_component
+        target_label: workload_name
+      - action: replace
+        replacement: "StaticPod"
+        target_label: workload_type
+      - source_labels:
+        - __meta_kubernetes_pod_node_name
+        target_label: __host__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        replacement: $1
+        separator: /
+        source_labels:
+        - __meta_kubernetes_namespace
+        - workload_name
+        target_label: job
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: namespace
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_container_name
+        target_label: container
+      - replacement: /var/log/pods/*$1/*.log
+        separator: /
+        source_labels:
+        - __meta_kubernetes_pod_annotation_kubernetes_io_config_mirror
+        - __meta_kubernetes_pod_container_name
+        target_label: __path__
+---
+
+# Source: loki-stack/charts/promtail/templates/clusterrole.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    app: promtail
+  name: loki-promtail-clusterrole
+rules:
+  - apiGroups: [""] # "" indicates the core API group
+    resources:
+      - nodes
+      - nodes/proxy
+      - services
+      - endpoints
+      - pods
+    verbs: ["get", "watch", "list"]
+---
+
+# Source: loki-stack/charts/promtail/templates/clusterrolebinding.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: loki-promtail-clusterrolebinding
+  labels:
+    app: promtail
+subjects:
+  - kind: ServiceAccount
+    name: loki-promtail
+    namespace: loki
+roleRef:
+  kind: ClusterRole
+  name: loki-promtail-clusterrole
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: loki-stack/charts/promtail/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: loki-promtail
+  namespace: loki
+  labels:
+    app: promtail
+rules:
+  - apiGroups:      ['extensions']
+    resources:      ['podsecuritypolicies']
+    verbs:          ['use']
+    resourceNames:  [loki-promtail]
+---
+# Source: loki-stack/charts/promtail/templates/rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: loki-promtail
+  namespace: loki
+  labels:
+    app: promtail
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: loki-promtail
+subjects:
+  - kind: ServiceAccount
+    name: loki-promtail
+---
+# Source: loki-stack/charts/promtail/templates/daemonset.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: loki-promtail
+  namespace: loki
+  labels:
+    app: promtail
+spec:
+  selector:
+    matchLabels:
+      app: promtail
+      release: loki
+  template:
+    metadata:
+      labels:
+        app: promtail
+        release: loki
+      annotations:
+        checksum/config: 565cb405dd5da4e3f36284971b5665ff13d4afe9cfc4e52d42f22913e0d8fd55
+        prometheus.io/port: http-metrics
+        prometheus.io/scrape: "true"
+    spec:
+      nodeSelector:
+       openyurt.io/is-edge-worker: "true"
+      serviceAccountName: loki-promtail
+      tolerations:
+        - effect: NoExecute
+          operator: Exists
+        - effect: NoSchedule
+          operator: Exists
+      containers:
+        - name: promtail
+          image: grafana/promtail:2.4.1
+          imagePullPolicy: IfNotPresent
+          args:
+            - "-config.file=/etc/promtail/promtail.yaml"
+            - "-client.url=http://loki:3100/loki/api/v1/push"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/promtail
+            - name: run
+              mountPath: /run/promtail
+            - mountPath: /var/lib/docker/containers
+              name: docker
+              readOnly: true
+            - mountPath: /var/log
+              name: log
+              readOnly: true
+            - mountPath: /run/log/journal
+              name: journal
+              readOnly: true
+            - mountPath: /etc/machine-id
+              name: machine-id
+              readOnly: true
+            - name: tz
+              mountPath: /etc/localtime
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          ports:
+            - containerPort: 3101
+              name: http-metrics
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsGroup: 0
+            runAsUser: 0
+          readinessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /ready
+              port: http-metrics
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+      volumes:
+        - name: config
+          configMap:
+            name: loki-promtail
+        - name: run
+          hostPath:
+            path: /run/promtail
+        - hostPath:
+            path: /var/lib/docker/containers
+          name: docker
+        - hostPath:
+            path: /var/log
+          name: log
+        - hostPath:
+            path: /run/log/journal
+          name: journal
+        - hostPath:
+            path: /etc/machine-id
+          name: machine-id
+        - name: tz
+          hostPath:
+            path: /etc/localtime

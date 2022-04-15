@@ -6,8 +6,8 @@ metadata:
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: kube-prometheus
     app.kubernetes.io/version: 7.5.4
-name: grafana-nodes
-namespace: monitoring
+  name: grafana-nodes
+  namespace: monitoring
 data:
   prometheus.json: |-  
     {
@@ -988,7 +988,5 @@ data:
         ]
       },
       "timezone": "browser",
-      "title": "节点监控",
-      "uid": "JboKunEnz",
-      "version": 1
+      "title": "节点监控"
     }

@@ -1,0 +1,232 @@
+apiVersion: v1
+items:
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/apiserver.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-apiserver
+      namespace: monitoring
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/cluster-total.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-cluster-total
+      namespace: monitoring
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/controller-manager.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-controller-manager
+      namespace: monitoring
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/controller-manager.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-k8s-resources-cluster
+      namespace: monitoring
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/k8s-resources-namespace.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-k8s-resources-namespace
+      namespace: monitoring
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/k8s-resources-node.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-k8s-resources-node
+      namespace: monitoring
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/k8s-resources-pod.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-k8s-resources-pod
+      namespace: monitoring
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/k8s-resources-workload.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-k8s-resources-workload
+      namespace: monitoring
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/k8s-resources-workload-namespace.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-k8s-resources-workloads-namespace
+      namespace: monitoring
+
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/namespace-by-pod.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-namespace-by-pod
+      namespace: monitoring
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/namespace-by-workload.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-namespace-by-workload
+      namespace: monitoring
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/node-cluster-rsrc-use.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-node-cluster-rsrc-use
+      namespace: monitoring
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/node-rsrc-use.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-node-rsrc-use
+      namespace: monitoring
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/persistentvolumesusage.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-persistentvolumesusage
+      namespace: monitoring
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/pod-total.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-pod-total
+      namespace: monitoring
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/proxy.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-proxy
+      namespace: monitoring
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/scheduler.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-scheduler
+      namespace: monitoring
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/statefulset.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-statefulset
+      namespace: monitoring
+  - apiVersion: v1
+    data:
+    { { (.Files.Glob "config/grafana-dashbord/workload-total.json").AsConfig | indent 2 } }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app.kubernetes.io/component: grafana
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/part-of: kube-prometheus
+        app.kubernetes.io/version: 7.5.4
+      name: grafana-dashboard-workload-total
+      namespace: monitoring
+kind: ConfigMapList

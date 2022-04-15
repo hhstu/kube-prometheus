@@ -1,0 +1,52 @@
+# 全局配置
+globalRegistry:
+imagePullPolicy: ifNotPresent
+storageClass: # 为空 default
+
+# 监控
+monitor:
+  enable: true
+# 日志
+log:
+  enable: true
+  nodePort: 30000
+  retentionPeriod: 240h # 日志保留时间
+  storageSize:  20G     # pv size
+  lokiCloudHost:        # 云边场景使用， loki 在远端的映射地址，example 192.168.15.11:30000
+# 告警
+alert:
+  enable: true
+  dingding:
+    webhookUrl:
+  email:
+    resovelTimeout: 5m #超时时间
+#展示
+grafana:
+  nodePort:
+
+# 镜像
+images:
+  log:
+    loki:
+      image: grafana/loki:2.4.1
+    promtail:
+      image: grafana/promtail:2.4.1
+  monitor:
+    prometheusOperator:
+      image: prometheus-operator/prometheus-operator:v0.47.0
+    kubeRbacProxy:
+      image: brancz/kube-rbac-proxy:v0.8.0
+    prometheusConfigReloader:
+      image: prometheus-operator/prometheus-config-reloader:v0.47.0
+    alertmanager:
+      image: prometheus/alertmanager:v0.21.0
+    grafana:
+      image: grafana/grafana:7.5.4
+    kubeStateMetrics:
+      image: basefly/kube-state-metrics:v2.0.0
+    nodeExporter:
+      image: prometheus/node-exporter:v1.1.2
+    k8sPrometheusAdapter:
+      image: directxman12/k8s-prometheus-adapter:v0.8.4
+    jetsonExporter:
+      image: basefly/jetson-exporter:v0.1
