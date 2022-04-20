@@ -28,7 +28,7 @@ spec:
       containers:
         - image: {{ default "docker.io" }}/{{ .Values.images.monitor.jetsonExporter.image }}
           name: jetson-exporter
-          imagePullPolicy: {{ default "ifNotPresent" .Values.imagePullPolicy }}
+          imagePullPolicy: {{ default "IfNotPresent" .Values.imagePullPolicy }}
           securityContext:
             privileged: true
           volumeMounts:

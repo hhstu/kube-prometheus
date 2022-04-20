@@ -1,8 +1,8 @@
 # 全局配置
 globalRegistry:
-imagePullPolicy: ifNotPresent
+imagePullPolicy: IfNotPresent
 storageClass: # 为空 default
-
+nodeSelector:
 # 监控
 monitor:
   enable: true

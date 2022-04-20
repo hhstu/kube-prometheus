@@ -1,10 +1,3 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    name: loki
-  name: loki
----
 # Source: loki-stack/charts/loki/templates/serviceaccount.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -12,13 +5,13 @@ metadata:
   labels:
     app: loki
   name: loki
-  namespace: loki
+  namespace: monitoring
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: loki
-  namespace: loki
+  namespace: monitoring
   labels:
     app: loki
 data:
@@ -65,7 +58,7 @@ data:
       shared_store: filesystem
     table_manager:
       retention_deletes_enabled: true
-      retention_period: {{ default "240h" .Values.log.retentionPeriod }}}
+      retention_period: {{ default "240h" .Values.log.retentionPeriod }}
     ruler:
       storage:
         type: local
@@ -84,7 +77,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: loki
-  namespace: loki
+  namespace: monitoring
   labels:
     app: loki
 rules:
@@ -100,7 +93,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: loki
-  namespace: loki
+  namespace: monitoring
   labels:
     app: loki
 roleRef:
@@ -116,7 +109,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: loki-headless
-  namespace: loki
+  namespace: monitoring
   labels:
     app: loki
 spec:
@@ -134,7 +127,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: loki
-  namespace: loki
+  namespace: monitoring
   labels:
     app: loki
     serviceType: nodePort
@@ -154,7 +147,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: loki
-  namespace: loki
+  namespace: monitoring
   labels:
     app: loki
     serviceType: headless
@@ -197,8 +190,8 @@ spec:
         runAsUser: 0
       containers:
         - name: loki
-          image: {{ default "docker.io" }}/{{ .Values.images.log.promtail.image }}
-          imagePullPolicy: {{ default "ifNotPresent" .Values.imagePullPolicy }}
+          image: {{ default "docker.io" }}/{{ .Values.images.log.loki.image }}
+          imagePullPolicy: {{ default "IfNotPresent" .Values.imagePullPolicy }}
           args:
             - "-config.file=/etc/loki/loki.yaml"
           volumeMounts:
@@ -255,20 +248,18 @@ metadata:
   labels:
     app: promtail
   name: loki-promtail
-  namespace: loki
+  namespace: monitoring
 ---
 # Source: loki-stack/charts/promtail/templates/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: loki-promtail
-  namespace: loki
+  namespace: monitoring
   labels:
     app: promtail
 data:
   promtail.yaml: |
-    clients:
-      - url: http://loki:3100/loki/api/v1/push
     client:
       external_labels: {cluster: ctfo-monitor }
       backoff_config:
@@ -621,7 +612,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: loki-promtail
-    namespace: loki
+    namespace: monitoring
 roleRef:
   kind: ClusterRole
   name: loki-promtail-clusterrole
@@ -632,7 +623,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: loki-promtail
-  namespace: loki
+  namespace: monitoring
   labels:
     app: promtail
 rules:
@@ -646,7 +637,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: loki-promtail
-  namespace: loki
+  namespace: monitoring
   labels:
     app: promtail
 roleRef:
@@ -661,8 +652,116 @@ subjects:
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: loki-promtail
-  namespace: loki
+  name: loki-promtail-cloud
+  namespace: monitoring
+  labels:
+    app: promtail
+spec:
+  selector:
+    matchLabels:
+      app: promtail
+      release: loki
+  template:
+    metadata:
+      labels:
+        app: promtail
+        release: loki
+      annotations:
+        checksum/config: 565cb405dd5da4e3f36284971b5665ff13d4afe9cfc4e52d42f22913e0d8fd55
+        prometheus.io/port: http-metrics
+        prometheus.io/scrape: "true"
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: openyurt.io/is-edge-worker
+                    operator: NotIn
+                    values:
+                      - "true"
+      serviceAccountName: loki-promtail
+      tolerations:
+        - effect: NoExecute
+          operator: Exists
+        - effect: NoSchedule
+          operator: Exists
+      containers:
+        - name: promtail
+          image: {{ default "docker.io" }}/{{ .Values.images.log.promtail.image }}
+          imagePullPolicy: {{ default "IfNotPresent" .Values.imagePullPolicy }}
+          args:
+            - "-config.file=/etc/promtail/promtail.yaml"
+            - "-client.url=http://loki:3100/loki/api/v1/push"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/promtail
+            - name: run
+              mountPath: /run/promtail
+            - mountPath: /var/lib/docker/containers
+              name: docker
+              readOnly: true
+            - mountPath: /var/log
+              name: log
+              readOnly: true
+            - mountPath: /run/log/journal
+              name: journal
+              readOnly: true
+            - mountPath: /etc/machine-id
+              name: machine-id
+              readOnly: true
+            - name: tz
+              mountPath: /etc/localtime
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          ports:
+            - containerPort: 3101
+              name: http-metrics
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsGroup: 0
+            runAsUser: 0
+          readinessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /ready
+              port: http-metrics
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+      volumes:
+        - name: config
+          configMap:
+            name: loki-promtail
+        - name: run
+          hostPath:
+            path: /run/promtail
+        - hostPath:
+            path: /var/lib/docker/containers
+          name: docker
+        - hostPath:
+            path: /var/log
+          name: log
+        - hostPath:
+            path: /run/log/journal
+          name: journal
+        - hostPath:
+            path: /etc/machine-id
+          name: machine-id
+        - name: tz
+          hostPath:
+            path: /etc/localtime
+---
+# Source: loki-stack/charts/promtail/templates/daemonset.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: loki-promtail-edge
+  namespace: monitoring
   labels:
     app: promtail
 spec:
@@ -681,7 +780,7 @@ spec:
         prometheus.io/scrape: "true"
     spec:
       nodeSelector:
-       openyurt.io/is-edge-worker: "true"
+        openyurt.io/is-edge-worker: "true"
       serviceAccountName: loki-promtail
       tolerations:
         - effect: NoExecute
@@ -691,10 +790,10 @@ spec:
       containers:
         - name: promtail
           image: {{ default "docker.io" }}/{{ .Values.images.log.promtail.image }}
-          imagePullPolicy: {{ default "ifNotPresent" .Values.imagePullPolicy }}
+          imagePullPolicy: {{ default "IfNotPresent" .Values.imagePullPolicy }}
           args:
             - "-config.file=/etc/promtail/promtail.yaml"
-            - "-client.url=http://loki:3100/loki/api/v1/push"
+            - "-client.url=http://{{ default "loki:3100" .Values.log.lokiCloudHost }}/loki/api/v1/push"
           volumeMounts:
             - name: config
               mountPath: /etc/promtail

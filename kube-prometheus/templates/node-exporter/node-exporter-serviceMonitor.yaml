@@ -23,7 +23,7 @@ spec:
     - action: replace
       replacement: node-exporter
       targetLabel: job
-    scheme: http
+    scheme: https
     tlsConfig:
       insecureSkipVerify: true
   jobLabel: app.kubernetes.io/name

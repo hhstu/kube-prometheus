@@ -42,7 +42,7 @@ spec:
         - --collector.netclass.ignored-devices=^(veth.*|[a-f0-9]{15})$
         - --collector.netdev.device-exclude=^(veth.*|[a-f0-9]{15})$
         image: {{ default "quay.io" .Values.globalRegistry }}/{{ .Values.images.monitor.nodeExporter.image}}
-        imagePullPolicy: {{ default "ifNotPresent" .Values.imagePullPolicy }}
+        imagePullPolicy: {{ default "IfNotPresent" .Values.imagePullPolicy }}
         name: node-exporter
         resources:
           limits:
@@ -135,7 +135,7 @@ spec:
     spec:
       containers:
         - args:
-            - --web.listen-address=127.0.0.1:9100
+            - --web.listen-address=:9100
             - --path.sysfs=/host/sys
             - --path.rootfs=/host/root
             - --no-collector.wifi

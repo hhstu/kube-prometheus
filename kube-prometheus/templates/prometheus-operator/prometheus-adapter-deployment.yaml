@@ -36,7 +36,7 @@ spec:
         - --prometheus-url=http://prometheus-k8s.monitoring.svc.cluster.local:9090/
         - --secure-port=6443
         image: {{ default "docker.io" .Values.images.monitor.k8sPrometheusAdapter.image}}
-        imagePullPolicy: {{ default "ifNotPresent" .Values.imagePullPolicy }}
+        imagePullPolicy: {{ default "IfNotPresent" .Values.imagePullPolicy }}
         name: prometheus-adapter
         ports:
         - containerPort: 6443

@@ -138,6 +138,12 @@ spec:
             - mountPath: /grafana-dashboard-definitions/0/workload-total
               name: grafana-dashboard-workload-total
               readOnly: false
+            - mountPath: /grafana-dashboard-definitions/0/coredns
+              name: grafana-dashboard-coredns
+              readOnly: false  
+            - mountPath: /grafana-dashboard-definitions/0/ecu
+              name: grafana-dashboard-ecu
+              readOnly: false    
       nodeSelector:
         beta.kubernetes.io/os: linux
       securityContext:
@@ -224,3 +230,9 @@ spec:
         - configMap:
             name: grafana-dashboard-workload-total
           name: grafana-dashboard-workload-total
+        - configMap:
+            name: grafana-dashboard-coredns
+          name: grafana-dashboard-coredns
+        - configMap:
+            name: grafana-dashboard-ecu
+          name: grafana-dashboard-ecu

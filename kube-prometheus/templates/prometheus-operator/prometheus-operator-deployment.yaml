@@ -24,10 +24,10 @@ spec:
       containers:
       - args:
         - --kubelet-service=kube-system/kubelet
-        - --prometheus-config-reloader='{{ default "quay.io" .Values.globalRegistry }}/{{ .Values.images.monitor.prometheusConfigReloader.image }}'
+        - --prometheus-config-reloader={{ default "quay.io" .Values.globalRegistry }}/{{ .Values.images.monitor.prometheusConfigReloader.image }}
         image: '{{ default "quay.io" .Values.globalRegistry }}/{{ .Values.images.monitor.prometheusOperator.image}}'
         name: prometheus-operator
-        imagePullPolicy: {{ default "ifNotPresent" .Values.imagePullPolicy }}
+        imagePullPolicy: {{ default "IfNotPresent" .Values.imagePullPolicy }}
         ports:
         - containerPort: 8080
           name: http
@@ -47,7 +47,7 @@ spec:
         - --upstream=http://127.0.0.1:8080/
         image: {{ default "quay.io" .Values.globalRegistry }}/{{ .Values.images.monitor.kubeRbacProxy.image}}
         name: kube-rbac-proxy
-        imagePullPolicy: {{ default "ifNotPresent" .Values.imagePullPolicy }}
+        imagePullPolicy: {{ default "IfNotPresent" .Values.imagePullPolicy }}
         ports:
         - containerPort: 8443
           name: https

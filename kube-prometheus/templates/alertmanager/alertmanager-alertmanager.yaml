@@ -17,7 +17,6 @@ spec:
       app.kubernetes.io/component: alert-router
       app.kubernetes.io/name: alertmanager
       app.kubernetes.io/part-of: kube-prometheus
-      app.kubernetes.io/version: {{ .Values.images.monitor.alertmanager.tag }}
   replicas: 2
   resources:
     limits:
